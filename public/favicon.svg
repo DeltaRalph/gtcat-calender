@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="gt3grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD000"/>
+      <stop offset="100%" stop-color="#EAB308"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0A0C10"/>
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="none" stroke="#222938" stroke-width="4"/>
+  <!-- GT3 Wing / Tachometer line -->
+  <path d="M26 44 L102 44" stroke="url(#gt3grad)" stroke-width="8" stroke-linecap="round"/>
+  <!-- Calender Body -->
+  <rect x="26" y="58" width="76" height="46" rx="10" fill="#161C26" stroke="#FFD000" stroke-width="3"/>
+  <!-- Calendar Grid Marks -->
+  <circle cx="42" cy="74" r="4" fill="#FFD000"/>
+  <circle cx="64" cy="74" r="4" fill="#FFD000"/>
+  <circle cx="86" cy="74" r="4" fill="#FFD000"/>
+  <circle cx="42" cy="90" r="4" fill="#3B82F6"/>
+  <circle cx="64" cy="90" r="4" fill="#10B981"/>
+  <circle cx="86" cy="90" r="4" fill="#A855F7"/>
+</svg>
