@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { SlotItem, ChecklistItem, SlotStatus, DayOfWeek } from '../types/calendar';
+import { SlotItem, ChecklistItem, SlotStatus, DayOfWeek, TodoItem, Category } from '../types/calendar';
 import { INITIAL_SLOTS } from '../data/initialSchedule';
 import { 
   getMonday, 
@@ -14,6 +14,7 @@ import {
 const STORAGE_KEY = 'gtcat_schedule_slots_v1';
 const SNAPSHOTS_KEY = 'gtcat_schedule_snapshots_v1';
 const OVERRIDES_KEY = 'gtcat_schedule_overrides_v1';
+const TODOS_KEY = 'gtcat_schedule_todos_v1';
 
 export interface ScheduleSnapshot {
   id: string;
@@ -22,6 +23,49 @@ export interface ScheduleSnapshot {
   slotCount: number;
   slots: SlotItem[];
 }
+
+const INITIAL_TODOS: TodoItem[] = [
+  {
+    id: 'todo-1',
+    text: 'Borçlar Hukuku: Kusursuz Sorumluluk & Adam Çalıştıranın Sorumluluğu olay çözümü',
+    done: false,
+    category: 'snf2',
+    priority: true,
+    createdAt: 'Bugün',
+  },
+  {
+    id: 'todo-2',
+    text: 'Ceza Genel: Olası Kast ve Bilinçli Taksir ayrımı Yargıtay özetini çıkar',
+    done: false,
+    category: 'snf2',
+    priority: true,
+    createdAt: 'Bugün',
+  },
+  {
+    id: 'todo-3',
+    text: 'GT3 Core Engine: Takvim bulut eşitleme ve sürükle-bırak API optimizasyonu',
+    done: true,
+    category: 'deepwork',
+    priority: true,
+    createdAt: 'Dün',
+  },
+  {
+    id: 'todo-4',
+    text: 'Anayasa Hukuku: İptal Davaları ve Somut Norm Denetimi süre tablosu',
+    done: false,
+    category: 'snf1',
+    priority: false,
+    createdAt: 'Bugün',
+  },
+  {
+    id: 'todo-5',
+    text: 'Merkez Kütüphane: 3 saatlik blokta Medeni Hukuk pratik çalışma',
+    done: false,
+    category: 'lib',
+    priority: false,
+    createdAt: 'Bugün',
+  },
+];
 
 export function useScheduleStorage() {
   // 1. Dynamic Week Date State (defaults to current week's Monday)
@@ -53,6 +97,20 @@ export function useScheduleStorage() {
     }
   });
 
+  // 4. Amie Todos State (Draggable to Calendar)
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(TODOS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return INITIAL_TODOS;
+  });
+
   const [lastSaved, setLastSaved] = useState<string>('Az önce');
   const [snapshots, setSnapshots] = useState<ScheduleSnapshot[]>(() => {
     try {
@@ -82,6 +140,7 @@ export function useScheduleStorage() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(slots));
       localStorage.setItem(OVERRIDES_KEY, JSON.stringify(dateOverrides));
+      localStorage.setItem(TODOS_KEY, JSON.stringify(todos));
       const nowStr = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       setLastSaved(nowStr);
 
@@ -109,7 +168,7 @@ export function useScheduleStorage() {
     } catch (e) {
       console.error('LocalStorage save error:', e);
     }
-  }, [slots, dateOverrides]);
+  }, [slots, dateOverrides, todos]);
 
   /**
    * Get active slots for a specific calendar date and day of week
@@ -284,8 +343,66 @@ export function useScheduleStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newSlots));
   };
 
+  // --- Amie Todo Methods ---
+  const addTodo = (text: string, category: Category = 'custom', priority: boolean = false, dateIso?: string) => {
+    const newTodo: TodoItem = {
+      id: 'todo-' + Date.now(),
+      text: text.trim(),
+      done: false,
+      category,
+      priority,
+      dateIso,
+      createdAt: 'Bugün',
+    };
+    setTodos(prev => [newTodo, ...prev]);
+  };
+
+  const toggleTodo = (id: string) => {
+    setTodos(prev => prev.map(t => (t.id === id ? { ...t, done: !t.done } : t)));
+  };
+
+  const deleteTodo = (id: string) => {
+    setTodos(prev => prev.filter(t => t.id !== id));
+  };
+
+  const toggleTodoPriority = (id: string) => {
+    setTodos(prev => prev.map(t => (t.id === id ? { ...t, priority: !t.priority } : t)));
+  };
+
+  /**
+   * Converts a todo item directly into a calendar time-block slot!
+   * Supports dragging from AmieTodoSidebar into MatrixGrid or CalendarGrid.
+   */
+  const convertTodoToSlot = (
+    todoId: string, 
+    day: DayOfWeek, 
+    startTime: string, 
+    endTime: string, 
+    dateIso?: string
+  ) => {
+    const todo = todos.find(t => t.id === todoId);
+    if (!todo) return;
+
+    addSlot({
+      day,
+      startTime,
+      endTime,
+      title: todo.text,
+      category: todo.category,
+      status: 'pending',
+      notes: `Amie To-do listesinden zaman bloğu olarak eklendi.`,
+      checklist: [],
+      isCustom: true,
+      dateIso,
+    }, dateIso);
+
+    // Auto mark as completed or keep in list
+    toggleTodo(todoId);
+  };
+
   return {
     slots,
+    todos,
     currentMonday,
     weekDays,
     weekTitle,
@@ -309,5 +426,12 @@ export function useScheduleStorage() {
     deleteChecklistItem,
     resetToDefault,
     importSchedule,
+    // Amie Todo handlers
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    toggleTodoPriority,
+    convertTodoToSlot,
   };
 }
+

@@ -9,7 +9,8 @@ import {
   CalendarCheck, 
   LayoutGrid,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  PanelLeft
 } from 'lucide-react';
 import { ViewMode } from '../types/calendar';
 
@@ -27,6 +28,8 @@ interface HeaderProps {
   onNextWeek: () => void;
   onToday: () => void;
   isCurrentWeek: boolean;
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -43,6 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
   onNextWeek,
   onToday,
   isCurrentWeek,
+  isSidebarOpen,
+  onToggleSidebar,
 }) => {
   return (
     <header className="no-print bg-white/95 dark:bg-gt3-cardDark/95 backdrop-blur-md border-b border-gt3-borderLight dark:border-gt3-borderDark sticky top-0 z-30 transition-colors">
@@ -51,6 +56,19 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Left: Clean Brand & Dynamic Week Navigator */}
           <div className="flex items-center gap-3">
+            {/* Sidebar Toggle (Amie style) */}
+            <button
+              onClick={onToggleSidebar}
+              className={`p-2 rounded-xl border transition-all ${
+                isSidebarOpen
+                  ? 'bg-gt3-yellow/20 text-yellow-800 dark:text-gt3-yellow border-gt3-yellow/40 shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-900 text-slate-500 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-800'
+              }`}
+              title="Amie Görevler & Odak Panelini Aç/Kapat (B)"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gt3-yellow to-amber-500 flex items-center justify-center font-mono font-black text-black shadow-gt3 text-base tracking-tighter shrink-0 cursor-pointer hover:scale-105 transition-transform">
               GT3
             </div>

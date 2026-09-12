@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from './hooks/useTheme';
 import { useScheduleStorage } from './hooks/useScheduleStorage';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { SlotItem, DayOfWeek, FilterCategory, ViewMode } from './types/calendar';
 
 import { Header } from './components/Header';
@@ -9,6 +10,7 @@ import { FilterBar } from './components/FilterBar';
 import { CalendarGrid } from './components/CalendarGrid';
 import { MatrixGrid } from './components/MatrixGrid';
 import { DailyAgendaView } from './components/DailyAgendaView';
+import { AmieTodoSidebar } from './components/AmieTodoSidebar';
 import { SlotDrawer } from './components/SlotDrawer';
 import { AddSlotModal } from './components/AddSlotModal';
 import { QuickSyllabusModal } from './components/QuickSyllabusModal';
@@ -19,6 +21,7 @@ export function App() {
   const { theme, toggleTheme } = useTheme();
   const {
     slots,
+    todos,
     lastSaved,
     snapshots,
     restoreSnapshot,
@@ -32,6 +35,12 @@ export function App() {
     deleteChecklistItem,
     resetToDefault,
     importSchedule,
+    // Amie Todo handlers
+    addTodo,
+    toggleTodo,
+    deleteTodo,
+    toggleTodoPriority,
+    convertTodoToSlot,
     // Dynamic week engine
     weekDays,
     weekTitle,
@@ -45,6 +54,9 @@ export function App() {
 
   // View Mode: 'matrix' (40 min matrix) | 'agenda' (Daily Pomodoro Agenda) | 'cards' (Kanban)
   const [viewMode, setViewMode] = useState<ViewMode>('matrix');
+
+  // Amie Sidebar Toggle state (Default open on wide screens)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Modal & Drawer states
   const [selectedSlot, setSelectedSlot] = useState<SlotItem | null>(null);
@@ -64,6 +76,21 @@ export function App() {
   // Filters
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Amie Keyboard Shortcuts Hook
+  useKeyboardShortcuts({
+    onToday: goToToday,
+    onPrevWeek: goToPreviousWeek,
+    onNextWeek: goToNextWeek,
+    onToggleSidebar: () => setIsSidebarOpen(prev => !prev),
+    onViewModeChange: setViewMode,
+    onOpenAddModal: () => {
+      setAddModalInitialDay('monday');
+      setAddModalDateIso(undefined);
+      setIsAddModalOpen(true);
+    },
+    onOpenSettings: () => setIsSettingsOpen(true),
+  });
 
   // Handle slot card click
   const handleSlotClick = (slot: SlotItem) => {
@@ -95,6 +122,11 @@ export function App() {
     setSelectedSlot(null);
   };
 
+  const todayInfo = weekDays.find(w => w.isToday);
+  const todayFormatted = todayInfo 
+    ? `${todayInfo.dayNumber} ${todayInfo.monthName} ${todayInfo.dayName}` 
+    : 'Bugün';
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-gt3-black text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-gt3-yellow selection:text-black">
       
@@ -119,72 +151,97 @@ export function App() {
         onNextWeek={goToNextWeek}
         onToday={goToToday}
         isCurrentWeek={isCurrentWeek}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
       />
 
-      {/* 2. Refined Telemetry Bar */}
-      <StatsHUD slots={slots} />
-
-      {/* 3. Filters & Realtime Search Bar (Visible in Matrix and Cards mode) */}
-      {viewMode !== 'agenda' && (
-        <FilterBar
-          activeFilter={activeFilter}
-          onSelectFilter={setActiveFilter}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+      {/* 2. Main Workspace Layout: Amie Split-Pane */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* Left: Amie Todo & Task Panel (Draggable to Calendar) */}
+        <AmieTodoSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          todos={todos}
+          onAddTodo={addTodo}
+          onToggleTodo={toggleTodo}
+          onDeleteTodo={deleteTodo}
+          onTogglePriority={toggleTodoPriority}
+          todayFormatted={todayFormatted}
         />
-      )}
 
-      {/* 4. Active Main View */}
-      <main className="flex-1 pb-10">
-        {viewMode === 'matrix' && (
-          <MatrixGrid
-            slots={slots}
-            weekDays={weekDays}
-            getSlotsForDay={getSlotsForDay}
-            activeFilter={activeFilter}
-            searchQuery={searchQuery}
-            onSlotClick={handleSlotClick}
-            onCellAdd={handleCellAdd}
-            onMoveSlot={moveSlot}
-          />
-        )}
+        {/* Right: Main Calendar Canvas */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-w-0">
+          
+          {/* Refined Telemetry Bar */}
+          <StatsHUD slots={slots} />
 
-        {viewMode === 'agenda' && (
-          <DailyAgendaView
-            slots={slots}
-            weekDays={weekDays}
-            getSlotsForDay={getSlotsForDay}
-            onSlotClick={handleSlotClick}
-            onUpdateSlotStatus={updateSlotStatus}
-            onQuickAdd={handleQuickAdd}
-          />
-        )}
+          {/* Filters & Realtime Search Bar (Visible in Matrix and Cards mode) */}
+          {viewMode !== 'agenda' && (
+            <FilterBar
+              activeFilter={activeFilter}
+              onSelectFilter={setActiveFilter}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          )}
 
-        {viewMode === 'cards' && (
-          <CalendarGrid
-            slots={slots}
-            weekDays={weekDays}
-            getSlotsForDay={getSlotsForDay}
-            activeFilter={activeFilter}
-            searchQuery={searchQuery}
-            onSlotClick={handleSlotClick}
-            onQuickAdd={handleQuickAdd}
-            onMoveSlot={moveSlot}
-          />
-        )}
-      </main>
+          {/* Active Main View */}
+          <main className="flex-1 pb-10">
+            {viewMode === 'matrix' && (
+              <MatrixGrid
+                slots={slots}
+                weekDays={weekDays}
+                getSlotsForDay={getSlotsForDay}
+                activeFilter={activeFilter}
+                searchQuery={searchQuery}
+                onSlotClick={handleSlotClick}
+                onCellAdd={handleCellAdd}
+                onMoveSlot={moveSlot}
+                onConvertTodoToSlot={convertTodoToSlot}
+              />
+            )}
 
-      {/* 5. Minimal Footer */}
-      <footer className="no-print border-t border-slate-200 dark:border-gt3-borderDark py-3 text-center text-xs text-slate-500 dark:text-slate-500 bg-white/40 dark:bg-gt3-cardDark/30">
-        <div className="max-w-[1720px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>
-            <span className="font-mono font-bold text-slate-700 dark:text-gt3-yellow">GTCAT CALENDAR</span> • Erdal Çetin Özel Sürümü
-          </p>
-          <p className="text-[11px]">
-            İÜHF Çift Şube • 9 Ders (63 AKTS) • Porsche 911 GT3 RS Cockpit Engine
-          </p>
+            {viewMode === 'agenda' && (
+              <DailyAgendaView
+                slots={slots}
+                weekDays={weekDays}
+                getSlotsForDay={getSlotsForDay}
+                onSlotClick={handleSlotClick}
+                onUpdateSlotStatus={updateSlotStatus}
+                onQuickAdd={handleQuickAdd}
+              />
+            )}
+
+            {viewMode === 'cards' && (
+              <CalendarGrid
+                slots={slots}
+                weekDays={weekDays}
+                getSlotsForDay={getSlotsForDay}
+                activeFilter={activeFilter}
+                searchQuery={searchQuery}
+                onSlotClick={handleSlotClick}
+                onQuickAdd={handleQuickAdd}
+                onMoveSlot={moveSlot}
+                onConvertTodoToSlot={convertTodoToSlot}
+              />
+            )}
+          </main>
+
+          {/* Minimal Footer */}
+          <footer className="no-print border-t border-slate-200 dark:border-gt3-borderDark py-3 text-center text-xs text-slate-500 dark:text-slate-500 bg-white/40 dark:bg-gt3-cardDark/30">
+            <div className="max-w-[1720px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p>
+                <span className="font-mono font-bold text-slate-700 dark:text-gt3-yellow">GTCAT CALENDAR</span> • Erdal Çetin Özel Sürümü
+              </p>
+              <p className="text-[11px]">
+                İÜHF Çift Şube • 9 Ders (63 AKTS) • Amie.so + GT3 RS Engine
+              </p>
+            </div>
+          </footer>
+
         </div>
-      </footer>
+      </div>
 
       {/* 6. Sliding Slot Inspector & Note Drawer */}
       <SlotDrawer

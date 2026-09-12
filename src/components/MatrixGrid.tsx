@@ -13,6 +13,7 @@ interface MatrixGridProps {
   onSlotClick: (slot: SlotItem) => void;
   onCellAdd: (day: DayOfWeek, startTime: string, endTime: string, dateIso?: string) => void;
   onMoveSlot: (slotId: string, targetDay: DayOfWeek, targetStartTime?: string, targetEndTime?: string, targetDateIso?: string) => void;
+  onConvertTodoToSlot?: (todoId: string, day: DayOfWeek, startTime: string, endTime: string, dateIso?: string) => void;
 }
 
 export const MatrixGrid: React.FC<MatrixGridProps> = ({
@@ -24,6 +25,7 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
   onSlotClick,
   onCellAdd,
   onMoveSlot,
+  onConvertTodoToSlot,
 }) => {
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
@@ -198,9 +200,16 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
                         onDrop={(e) => {
                           e.preventDefault();
                           setDragOverCell(null);
-                          const slotId = e.dataTransfer.getData('text/plain');
-                          if (slotId) {
-                            onMoveSlot(slotId, col.key, time.start, time.end, col.dateIso);
+                          const rawData = e.dataTransfer.getData('text/plain');
+                          if (rawData) {
+                            if (rawData.startsWith('TODO:')) {
+                              const todoId = rawData.replace('TODO:', '');
+                              if (onConvertTodoToSlot) {
+                                onConvertTodoToSlot(todoId, col.key, time.start, time.end, col.dateIso);
+                              }
+                            } else {
+                              onMoveSlot(rawData, col.key, time.start, time.end, col.dateIso);
+                            }
                           }
                         }}
                         className={`p-1.5 align-top border-r border-slate-200/80 dark:border-gt3-borderDark/80 last:border-r-0 relative transition-all min-h-[58px] ${

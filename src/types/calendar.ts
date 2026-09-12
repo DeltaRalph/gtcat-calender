@@ -59,3 +59,13 @@ export interface CourseInfo {
 export type FilterCategory = 'all' | 'snf1' | 'snf2' | 'deepwork' | 'lib';
 
 export type ViewMode = 'matrix' | 'agenda' | 'cards';
+
+export interface TodoItem {
+  id: string;
+  text: string;
+  done: boolean;
+  category: Category;
+  priority: boolean;
+  dateIso?: string;
+  createdAt: string;
+}

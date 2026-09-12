@@ -14,6 +14,7 @@ interface CalendarGridProps {
   onSlotClick: (slot: SlotItem) => void;
   onQuickAdd: (day: DayOfWeek, dateIso?: string) => void;
   onMoveSlot?: (slotId: string, targetDay: DayOfWeek, targetDateIso?: string) => void;
+  onConvertTodoToSlot?: (todoId: string, day: DayOfWeek, startTime: string, endTime: string, dateIso?: string) => void;
 }
 
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
@@ -25,6 +26,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
   onSlotClick,
   onQuickAdd,
   onMoveSlot,
+  onConvertTodoToSlot,
 }) => {
   const [dragOverDay, setDragOverDay] = React.useState<DayOfWeek | null>(null);
 
@@ -100,9 +102,16 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverDay(null);
-                const slotId = e.dataTransfer.getData('text/plain');
-                if (slotId && onMoveSlot) {
-                  onMoveSlot(slotId, col.key, col.dateIso);
+                const rawData = e.dataTransfer.getData('text/plain');
+                if (rawData) {
+                  if (rawData.startsWith('TODO:')) {
+                    const todoId = rawData.replace('TODO:', '');
+                    if (onConvertTodoToSlot) {
+                      onConvertTodoToSlot(todoId, col.key, '16:30', '17:30', col.dateIso);
+                    }
+                  } else if (onMoveSlot) {
+                    onMoveSlot(rawData, col.key, col.dateIso);
+                  }
                 }
               }}
               className={`flex flex-col rounded-2xl bg-slate-50/70 dark:bg-gt3-cardDark/50 border transition-all ${
