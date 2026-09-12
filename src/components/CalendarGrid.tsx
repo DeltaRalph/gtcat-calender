@@ -1,20 +1,25 @@
 import React from 'react';
 import { SlotItem, DayOfWeek, FilterCategory } from '../types/calendar';
 import { DAYS_CONFIG } from '../data/initialSchedule';
+import { WeekDayInfo } from '../utils/dateUtils';
 import { SlotCard } from './SlotCard';
 import { Plus } from 'lucide-react';
 
 interface CalendarGridProps {
   slots: SlotItem[];
+  weekDays?: WeekDayInfo[];
+  getSlotsForDay?: (dateIso: string, dayKey: DayOfWeek) => SlotItem[];
   activeFilter: FilterCategory;
   searchQuery: string;
   onSlotClick: (slot: SlotItem) => void;
-  onQuickAdd: (day: DayOfWeek) => void;
-  onMoveSlot?: (slotId: string, targetDay: DayOfWeek) => void;
+  onQuickAdd: (day: DayOfWeek, dateIso?: string) => void;
+  onMoveSlot?: (slotId: string, targetDay: DayOfWeek, targetDateIso?: string) => void;
 }
 
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
   slots,
+  weekDays,
+  getSlotsForDay,
   activeFilter,
   searchQuery,
   onSlotClick,
@@ -23,17 +28,29 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
 }) => {
   const [dragOverDay, setDragOverDay] = React.useState<DayOfWeek | null>(null);
 
-  // Determine current day of week (0 is Sunday, 1 is Monday...)
-  const dayIndex = new Date().getDay();
-  const currentDayKey: DayOfWeek = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ][dayIndex] as DayOfWeek;
+  // Build column metadata from weekDays or fallback to DAYS_CONFIG
+  const columns = weekDays ? weekDays.map(w => {
+    const config = DAYS_CONFIG.find(d => d.key === w.dayKey);
+    return {
+      key: w.dayKey,
+      label: w.dayName,
+      short: w.dayShort,
+      dateIso: w.dateIso,
+      dayNumber: w.dayNumber,
+      monthName: w.monthName,
+      isToday: w.isToday,
+      badge: config?.badge,
+    };
+  }) : DAYS_CONFIG.map(d => ({
+    key: d.key,
+    label: d.label,
+    short: d.short,
+    dateIso: undefined,
+    dayNumber: undefined,
+    monthName: undefined,
+    isToday: false,
+    badge: d.badge,
+  }));
 
   // Check if slot matches current filter & search
   const isSlotVisible = (slot: SlotItem): boolean => {
@@ -63,20 +80,21 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
     <div className="no-print max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
       {/* 7 Columns Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-3.5">
-        {DAYS_CONFIG.map((day) => {
-          const isToday = day.key === currentDayKey;
-          const isDragOver = dragOverDay === day.key;
-          const daySlots = slots
-            .filter((s) => s.day === day.key)
-            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        {columns.map((col) => {
+          const isToday = col.isToday;
+          const isDragOver = dragOverDay === col.key;
+          const daySlots = ((getSlotsForDay && col.dateIso) 
+            ? getSlotsForDay(col.dateIso, col.key)
+            : slots.filter((s) => s.day === col.key)
+          ).sort((a, b) => a.startTime.localeCompare(b.startTime));
 
           return (
             <div
-              key={day.key}
+              key={col.key}
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
-                setDragOverDay(day.key);
+                setDragOverDay(col.key);
               }}
               onDragLeave={() => setDragOverDay(null)}
               onDrop={(e) => {
@@ -84,7 +102,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 setDragOverDay(null);
                 const slotId = e.dataTransfer.getData('text/plain');
                 if (slotId && onMoveSlot) {
-                  onMoveSlot(slotId, day.key);
+                  onMoveSlot(slotId, col.key, col.dateIso);
                 }
               }}
               className={`flex flex-col rounded-2xl bg-slate-50/70 dark:bg-gt3-cardDark/50 border transition-all ${
@@ -98,25 +116,36 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               {/* Day Header */}
               <div className="p-3 border-b border-slate-200/80 dark:border-gt3-borderDark flex items-center justify-between bg-white dark:bg-gt3-cardDark rounded-t-2xl">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                    {day.label}
-                  </h2>
-                  {isToday && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-gt3-yellow animate-pulse" title="Bugün" />
-                  )}
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        {col.label}
+                      </h2>
+                      {isToday && (
+                        <span className="px-1.5 py-0.2 rounded bg-gt3-yellow text-black text-[9px] font-black tracking-tighter">
+                          BUGÜN
+                        </span>
+                      )}
+                    </div>
+                    {col.dayNumber !== undefined && (
+                      <span className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500">
+                        {col.dayNumber} {col.monthName}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {day.badge ? (
+                {col.badge ? (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                    day.key === 'friday'
+                    col.key === 'friday'
                       ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30'
-                      : day.key === 'thursday'
+                      : col.key === 'thursday'
                       ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30'
-                      : day.badge.includes('14.30')
+                      : col.badge.includes('14.30')
                       ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                   }`}>
-                    {day.badge}
+                    {col.badge}
                   </span>
                 ) : (
                   <span className="text-[10px] font-mono text-slate-400">
@@ -141,11 +170,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
 
                 {/* Quick Add Button at bottom of column */}
                 <button
-                  onClick={() => onQuickAdd(day.key)}
+                  onClick={() => onQuickAdd(col.key, col.dateIso)}
                   className="mt-auto py-2 px-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 hover:border-gt3-yellow text-slate-400 hover:text-slate-700 dark:hover:text-gt3-yellow text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all group"
                 >
                   <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                  <span>{day.short}'ye Ekle</span>
+                  <span>{col.short}'ye Ekle</span>
                 </button>
               </div>
             </div>

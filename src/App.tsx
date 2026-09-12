@@ -32,6 +32,15 @@ export function App() {
     deleteChecklistItem,
     resetToDefault,
     importSchedule,
+    // Dynamic week engine
+    weekDays,
+    weekTitle,
+    semesterWeekLabel,
+    isCurrentWeek,
+    goToNextWeek,
+    goToPreviousWeek,
+    goToToday,
+    getSlotsForDay,
   } = useScheduleStorage();
 
   // View Mode: 'matrix' (40 min matrix) | 'agenda' (Daily Pomodoro Agenda) | 'cards' (Kanban)
@@ -46,6 +55,7 @@ export function App() {
   const [addModalInitialDay, setAddModalInitialDay] = useState<DayOfWeek>('monday');
   const [addModalStartTime, setAddModalStartTime] = useState<string>('16:30');
   const [addModalEndTime, setAddModalEndTime] = useState<string>('17:30');
+  const [addModalDateIso, setAddModalDateIso] = useState<string | undefined>(undefined);
   
   // Syllabus & Settings Modals
   const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
@@ -62,16 +72,18 @@ export function App() {
   };
 
   // Quick add button in day column
-  const handleQuickAdd = (day: DayOfWeek) => {
+  const handleQuickAdd = (day: DayOfWeek, dateIso?: string) => {
     setAddModalInitialDay(day);
+    setAddModalDateIso(dateIso);
     setAddModalStartTime('16:30');
     setAddModalEndTime('17:30');
     setIsAddModalOpen(true);
   };
 
   // Cell add in 40-minute matrix
-  const handleCellAdd = (day: DayOfWeek, startTime: string, endTime: string) => {
+  const handleCellAdd = (day: DayOfWeek, startTime: string, endTime: string, dateIso?: string) => {
     setAddModalInitialDay(day);
+    setAddModalDateIso(dateIso);
     setAddModalStartTime(startTime);
     setAddModalEndTime(endTime);
     setIsAddModalOpen(true);
@@ -94,12 +106,19 @@ export function App() {
         onViewModeChange={setViewMode}
         onOpenAddModal={() => {
           setAddModalInitialDay('monday');
+          setAddModalDateIso(undefined);
           setAddModalStartTime('16:30');
           setAddModalEndTime('17:30');
           setIsAddModalOpen(true);
         }}
         onOpenSyllabusModal={() => setIsSyllabusOpen(true)}
         onOpenSettingsModal={() => setIsSettingsOpen(true)}
+        weekTitle={weekTitle}
+        semesterWeekLabel={semesterWeekLabel}
+        onPrevWeek={goToPreviousWeek}
+        onNextWeek={goToNextWeek}
+        onToday={goToToday}
+        isCurrentWeek={isCurrentWeek}
       />
 
       {/* 2. Refined Telemetry Bar */}
@@ -120,6 +139,8 @@ export function App() {
         {viewMode === 'matrix' && (
           <MatrixGrid
             slots={slots}
+            weekDays={weekDays}
+            getSlotsForDay={getSlotsForDay}
             activeFilter={activeFilter}
             searchQuery={searchQuery}
             onSlotClick={handleSlotClick}
@@ -131,6 +152,8 @@ export function App() {
         {viewMode === 'agenda' && (
           <DailyAgendaView
             slots={slots}
+            weekDays={weekDays}
+            getSlotsForDay={getSlotsForDay}
             onSlotClick={handleSlotClick}
             onUpdateSlotStatus={updateSlotStatus}
             onQuickAdd={handleQuickAdd}
@@ -140,6 +163,8 @@ export function App() {
         {viewMode === 'cards' && (
           <CalendarGrid
             slots={slots}
+            weekDays={weekDays}
+            getSlotsForDay={getSlotsForDay}
             activeFilter={activeFilter}
             searchQuery={searchQuery}
             onSlotClick={handleSlotClick}
@@ -181,6 +206,7 @@ export function App() {
         initialDay={addModalInitialDay}
         initialStartTime={addModalStartTime}
         initialEndTime={addModalEndTime}
+        initialDateIso={addModalDateIso}
       />
 
       {/* 8. Quick Syllabus Modal */}

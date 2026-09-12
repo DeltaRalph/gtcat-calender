@@ -6,10 +6,11 @@ import { X, Plus, Calendar, Clock, MapPin } from 'lucide-react';
 interface AddSlotModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (newSlot: Omit<SlotItem, 'id'>) => void;
+  onAdd: (newSlot: Omit<SlotItem, 'id'>, dateIso?: string) => void;
   initialDay?: DayOfWeek;
   initialStartTime?: string;
   initialEndTime?: string;
+  initialDateIso?: string;
 }
 
 export const AddSlotModal: React.FC<AddSlotModalProps> = ({
@@ -19,6 +20,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
   initialDay = 'monday',
   initialStartTime = '16:30',
   initialEndTime = '17:30',
+  initialDateIso,
 }) => {
   const [day, setDay] = useState<DayOfWeek>(initialDay);
   const [title, setTitle] = useState('');
@@ -62,7 +64,8 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
       notes,
       checklist: [],
       isCustom: true,
-    });
+      dateIso: initialDateIso,
+    }, initialDateIso);
 
     onClose();
   };

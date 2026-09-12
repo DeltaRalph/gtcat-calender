@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SlotItem, DayOfWeek } from '../types/calendar';
 import { DAYS_CONFIG } from '../data/initialSchedule';
+import { WeekDayInfo } from '../utils/dateUtils';
 import { 
   Play, 
   Pause, 
@@ -29,13 +30,17 @@ interface PomodoroSession {
 
 interface DailyAgendaViewProps {
   slots: SlotItem[];
+  weekDays?: WeekDayInfo[];
+  getSlotsForDay?: (dateIso: string, dayKey: DayOfWeek) => SlotItem[];
   onSlotClick: (slot: SlotItem) => void;
   onUpdateSlotStatus: (id: string, status: any) => void;
-  onQuickAdd: (day: DayOfWeek) => void;
+  onQuickAdd: (day: DayOfWeek, dateIso?: string) => void;
 }
 
 export const DailyAgendaView: React.FC<DailyAgendaViewProps> = ({
   slots,
+  weekDays,
+  getSlotsForDay,
   onSlotClick,
   onUpdateSlotStatus,
   onQuickAdd,
@@ -220,10 +225,39 @@ export const DailyAgendaView: React.FC<DailyAgendaViewProps> = ({
     setDailyJournal((prev) => prev + line);
   };
 
+  // Build day list either from weekDays or fallback to DAYS_CONFIG
+  const dayButtons = weekDays ? weekDays.map(w => {
+    const config = DAYS_CONFIG.find(d => d.key === w.dayKey);
+    return {
+      key: w.dayKey,
+      label: w.dayName,
+      short: w.dayShort,
+      dateIso: w.dateIso,
+      dayNumber: w.dayNumber,
+      monthName: w.monthName,
+      isToday: w.isToday,
+      badge: config?.badge,
+    };
+  }) : DAYS_CONFIG.map(d => ({
+    key: d.key,
+    label: d.label,
+    short: d.short,
+    dateIso: undefined,
+    dayNumber: undefined,
+    monthName: undefined,
+    isToday: false,
+    badge: d.badge,
+  }));
+
+  const activeDayInfo = dayButtons.find(d => d.key === selectedDay) || dayButtons[0];
+  const activeDateIso = activeDayInfo.dateIso;
+
   // Day slots
-  const daySlots = slots
-    .filter((s) => s.day === selectedDay)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const daySlots = (getSlotsForDay && activeDateIso)
+    ? getSlotsForDay(activeDateIso, selectedDay)
+    : slots
+        .filter((s) => s.day === selectedDay)
+        .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   const totalFocusMinutes = sessions
     .filter(s => s.mode === 'focus')
@@ -234,19 +268,27 @@ export const DailyAgendaView: React.FC<DailyAgendaViewProps> = ({
       
       {/* 1. Day Selector Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-4 scrollbar-none">
-        {DAYS_CONFIG.map((d) => {
+        {dayButtons.map((d) => {
           const isSelected = selectedDay === d.key;
           return (
             <button
               key={d.key}
               onClick={() => setSelectedDay(d.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs whitespace-nowrap transition-all border ${
                 isSelected
                   ? 'bg-slate-900 text-white dark:bg-gt3-cardDark dark:text-gt3-yellow border-gt3-yellow/60 shadow-gt3 ring-1 ring-gt3-yellow/40'
                   : 'bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
               }`}
             >
               <span>{d.label}</span>
+              {d.dayNumber !== undefined && (
+                <span className="font-mono text-[11px] opacity-70">
+                  {d.dayNumber} {d.monthName}
+                </span>
+              )}
+              {d.isToday && (
+                <span className="w-1.5 h-1.5 rounded-full bg-gt3-yellow animate-pulse" title="Bugün" />
+              )}
               {d.badge && (
                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-normal">
                   {d.badge}
@@ -268,12 +310,12 @@ export const DailyAgendaView: React.FC<DailyAgendaViewProps> = ({
                 <span>📅 Günlük Zaman Çizelgesi</span>
               </h2>
               <p className="text-xs text-slate-500">
-                {DAYS_CONFIG.find((d) => d.key === selectedDay)?.label} gününün dersleri ve odak blokları
+                {activeDayInfo.label} {activeDayInfo.dayNumber ? `(${activeDayInfo.dayNumber} ${activeDayInfo.monthName})` : ''} dersleri ve odak blokları
               </p>
             </div>
 
             <button
-              onClick={() => onQuickAdd(selectedDay)}
+              onClick={() => onQuickAdd(selectedDay, activeDateIso)}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-gt3-yellow text-black hover:bg-gt3-yellowHover shadow-gt3 transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -298,7 +340,7 @@ export const DailyAgendaView: React.FC<DailyAgendaViewProps> = ({
                       : slot.category === 'snf1'
                       ? 'bg-emerald-500'
                       : slot.category === 'snf2'
-                      ? 'bg-blue-500'
+                      ? 'bg-slate-400 dark:bg-slate-300'
                       : slot.category === 'lib'
                       ? 'bg-amber-500'
                       : slot.category === 'deepwork'
@@ -315,7 +357,7 @@ export const DailyAgendaView: React.FC<DailyAgendaViewProps> = ({
                         <>
                           <span>•</span>
                           <span className="flex items-center gap-0.5 text-slate-600 dark:text-slate-300">
-                            <MapPin className="w-3 h-3 text-blue-500" />
+                            <MapPin className="w-3 h-3 text-slate-400" />
                             <span>{slot.room}</span>
                           </span>
                         </>

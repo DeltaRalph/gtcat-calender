@@ -19,7 +19,7 @@ interface SlotDrawerProps {
   slot: SlotItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (id: string, updates: Partial<SlotItem>) => void;
+  onUpdate: (id: string, updates: Partial<SlotItem>, dateIso?: string) => void;
   onDelete: (id: string) => void;
   onToggleChecklist: (slotId: string, itemId: string) => void;
   onAddChecklist: (slotId: string, text: string) => void;
@@ -57,7 +57,7 @@ export const SlotDrawer: React.FC<SlotDrawerProps> = ({
 
   const handleStatusChange = (newStatus: SlotStatus) => {
     setStatus(newStatus);
-    onUpdate(slot.id, { status: newStatus });
+    onUpdate(slot.id, { status: newStatus }, slot.dateIso);
     if (newStatus === 'attended') {
       confetti({
         particleCount: 40,
@@ -70,7 +70,7 @@ export const SlotDrawer: React.FC<SlotDrawerProps> = ({
 
   const handleNotesChange = (val: string) => {
     setNotes(val);
-    onUpdate(slot.id, { notes: val });
+    onUpdate(slot.id, { notes: val }, slot.dateIso);
   };
 
   const handleAddChecklist = (e?: React.FormEvent) => {
@@ -84,7 +84,7 @@ export const SlotDrawer: React.FC<SlotDrawerProps> = ({
   const handleQuickSnippet = (snippet: string) => {
     const updated = notes ? notes + '\n' + snippet : snippet;
     setNotes(updated);
-    onUpdate(slot.id, { notes: updated });
+    onUpdate(slot.id, { notes: updated }, slot.dateIso);
   };
 
   const handleDelete = () => {

@@ -27,10 +27,10 @@ export const SlotCard: React.FC<SlotCardProps> = ({ slot, onClick, isMuted = fal
       badge: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
     },
     snf2: {
-      border: 'border-l-4 border-l-blue-500',
-      bg: 'bg-blue-500/[0.04] hover:bg-blue-500/[0.08] dark:bg-blue-500/[0.07] dark:hover:bg-blue-500/[0.12]',
-      text: 'text-blue-700 dark:text-blue-400',
-      badge: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/20',
+      border: 'border-l-4 border-l-slate-400 dark:border-l-slate-300',
+      bg: 'bg-slate-400/[0.06] hover:bg-slate-400/[0.12] dark:bg-slate-700/[0.2] dark:hover:bg-slate-700/[0.3]',
+      text: 'text-slate-800 dark:text-slate-200',
+      badge: 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700',
     },
     lib: {
       border: 'border-l-4 border-l-amber-500',

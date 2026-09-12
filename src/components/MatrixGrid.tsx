@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { SlotItem, DayOfWeek, FilterCategory } from '../types/calendar';
-import { DAYS_CONFIG, TIME_SLOTS } from '../data/initialSchedule';
+import { DAYS_CONFIG } from '../data/initialSchedule';
+import { WeekDayInfo } from '../utils/dateUtils';
 import { Plus, Clock, MapPin, CheckCircle2, Star, CheckSquare } from 'lucide-react';
 
 interface MatrixGridProps {
   slots: SlotItem[];
+  weekDays?: WeekDayInfo[];
+  getSlotsForDay?: (dateIso: string, dayKey: DayOfWeek) => SlotItem[];
   activeFilter: FilterCategory;
   searchQuery: string;
   onSlotClick: (slot: SlotItem) => void;
-  onCellAdd: (day: DayOfWeek, startTime: string, endTime: string) => void;
-  onMoveSlot: (slotId: string, targetDay: DayOfWeek, targetStartTime?: string, targetEndTime?: string) => void;
+  onCellAdd: (day: DayOfWeek, startTime: string, endTime: string, dateIso?: string) => void;
+  onMoveSlot: (slotId: string, targetDay: DayOfWeek, targetStartTime?: string, targetEndTime?: string, targetDateIso?: string) => void;
 }
 
 export const MatrixGrid: React.FC<MatrixGridProps> = ({
   slots,
+  weekDays,
+  getSlotsForDay,
   activeFilter,
   searchQuery,
   onSlotClick,
@@ -36,9 +41,8 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
   ];
 
   // Helper to find slot in specific cell
-  const findSlotsForCell = (day: DayOfWeek, timeStart: string) => {
-    return slots.filter(s => {
-      if (s.day !== day) return false;
+  const findSlotsForCell = (daySlots: SlotItem[], timeStart: string) => {
+    return daySlots.filter(s => {
       // Exact match or slot spans across this time
       if (s.startTime === timeStart) return true;
       // If slot covers multi-hours (e.g. Thu 09:50 - 13:40 or Fri 09:00 - 12:50)
@@ -68,13 +72,37 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
   const getCategoryColor = (cat: string) => {
     switch (cat) {
       case 'snf1': return 'border-l-emerald-500 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300';
-      case 'snf2': return 'border-l-blue-500 bg-blue-500/10 text-blue-800 dark:text-blue-300';
+      case 'snf2': return 'border-l-slate-400 dark:border-l-slate-300 bg-slate-500/10 text-slate-800 dark:text-slate-200';
       case 'lib': return 'border-l-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300';
       case 'deepwork': return 'border-l-purple-500 bg-purple-500/10 text-purple-800 dark:text-purple-300';
       case 'lunch': return 'border-l-slate-300 bg-slate-100 dark:bg-slate-800 text-slate-500';
       default: return 'border-l-slate-400 bg-slate-50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300';
     }
   };
+
+  // Build column metadata from weekDays or fallback to DAYS_CONFIG
+  const columns = weekDays ? weekDays.map(w => {
+    const config = DAYS_CONFIG.find(d => d.key === w.dayKey);
+    return {
+      key: w.dayKey,
+      label: w.dayName,
+      short: w.dayShort,
+      dateIso: w.dateIso,
+      dayNumber: w.dayNumber,
+      monthName: w.monthName,
+      isToday: w.isToday,
+      badge: config?.badge,
+    };
+  }) : DAYS_CONFIG.map(d => ({
+    key: d.key,
+    label: d.label,
+    short: d.short,
+    dateIso: undefined,
+    dayNumber: undefined,
+    monthName: undefined,
+    isToday: false,
+    badge: d.badge,
+  }));
 
   return (
     <div className="no-print max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -101,16 +129,32 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
                 <th className="w-[110px] p-3 text-center font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-r border-slate-200 dark:border-gt3-borderDark">
                   Saat
                 </th>
-                {DAYS_CONFIG.map(day => (
+                {columns.map(col => (
                   <th 
-                    key={day.key}
-                    className="p-3 text-center font-extrabold text-slate-800 dark:text-white uppercase tracking-tight border-r border-slate-200 dark:border-gt3-borderDark last:border-r-0"
+                    key={col.key}
+                    className={`p-3 text-center uppercase tracking-tight border-r border-slate-200 dark:border-gt3-borderDark last:border-r-0 transition-colors ${
+                      col.isToday ? 'bg-gt3-yellow/10 dark:bg-gt3-yellow/5' : ''
+                    }`}
                   >
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span>{day.label}</span>
-                      {day.badge && (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex items-center justify-center gap-1.5 font-extrabold text-slate-800 dark:text-white">
+                        <span>{col.label}</span>
+                        {col.isToday && (
+                          <span className="px-1.5 py-0.2 rounded bg-gt3-yellow text-black text-[9px] font-black tracking-tighter">
+                            BUGÜN
+                          </span>
+                        )}
+                      </div>
+                      
+                      {col.dayNumber !== undefined && (
+                        <span className="text-[11px] font-mono font-bold text-slate-400 dark:text-slate-500 lowercase">
+                          {col.dayNumber} {col.monthName}
+                        </span>
+                      )}
+
+                      {col.badge && (
                         <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold lowercase">
-                          {day.badge}
+                          {col.badge}
                         </span>
                       )}
                     </div>
@@ -131,14 +175,20 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
                   </td>
 
                   {/* Day Cells */}
-                  {DAYS_CONFIG.map((day) => {
-                    const cellKey = `${day.key}-${time.start}`;
+                  {columns.map((col) => {
+                    const cellKey = `${col.key}-${time.start}`;
                     const isDragOver = dragOverCell === cellKey;
-                    const cellSlots = findSlotsForCell(day.key, time.start);
+                    
+                    // Retrieve slots for this day and cell
+                    const daySlots = (getSlotsForDay && col.dateIso) 
+                      ? getSlotsForDay(col.dateIso, col.key)
+                      : slots.filter(s => s.day === col.key);
+
+                    const cellSlots = findSlotsForCell(daySlots, time.start);
 
                     return (
                       <td
-                        key={day.key}
+                        key={col.key}
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
@@ -150,12 +200,14 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
                           setDragOverCell(null);
                           const slotId = e.dataTransfer.getData('text/plain');
                           if (slotId) {
-                            onMoveSlot(slotId, day.key, time.start, time.end);
+                            onMoveSlot(slotId, col.key, time.start, time.end, col.dateIso);
                           }
                         }}
                         className={`p-1.5 align-top border-r border-slate-200/80 dark:border-gt3-borderDark/80 last:border-r-0 relative transition-all min-h-[58px] ${
                           isDragOver 
                             ? 'bg-gt3-yellow/20 ring-2 ring-gt3-yellow ring-inset' 
+                            : col.isToday
+                            ? 'bg-gt3-yellow/[0.02] dark:bg-gt3-yellow/[0.01]'
                             : ''
                         }`}
                       >
@@ -214,9 +266,9 @@ export const MatrixGrid: React.FC<MatrixGridProps> = ({
                         ) : (
                           /* Empty cell with click-to-add trigger */
                           <div 
-                            onClick={() => onCellAdd(day.key, time.start, time.end)}
+                            onClick={() => onCellAdd(col.key, time.start, time.end, col.dateIso)}
                             className="w-full h-full min-h-[46px] rounded-lg border border-transparent hover:border-dashed hover:border-slate-300 dark:hover:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-700 hover:text-gt3-yellow cursor-pointer transition-all group"
-                            title={`${day.label} ${time.label} saatine slot ekle`}
+                            title={`${col.label} ${time.label} saatine slot ekle`}
                           >
                             <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>

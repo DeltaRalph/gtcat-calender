@@ -40,6 +40,8 @@ export interface SlotItem {
   ects?: number;
   rowSpan?: number;  // For visual block grouping if needed
   isCustom?: boolean;
+  dateIso?: string;   // YYYY-MM-DD for specific calendar day
+  isRecurring?: boolean; // True for semester recurring weekly lectures
 }
 
 export interface CourseInfo {

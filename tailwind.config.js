@@ -9,25 +9,25 @@ export default {
     extend: {
       colors: {
         gt3: {
-          yellow: '#FFD000', // GT3 RS Racing Yellow
+          yellow: '#FACC15', // GT3 RS Racing Yellow
           yellowHover: '#FFE033',
           yellowDark: '#D4A600',
-          black: '#0A0C10',   // Deep Obsidian Cockpit
-          cardDark: '#12161F', // Carbon Slate
+          black: '#090A0F',   // Pure Deep Cockpit Obsidian
+          cardDark: '#12151C', // Carbon Graphite Surface
+          cardDarkHover: '#181D26',
           cardLight: '#FFFFFF',
-          borderDark: '#222938',
+          borderDark: '#1F2430', // Precision Hairline Border
+          borderDarkSubtle: '#171B24',
           borderLight: '#E2E8F0',
-          grayDark: '#1A202C',
-          textMutedDark: '#8A99AD',
+          grayDark: '#161922',
+          textMutedDark: '#8B949E',
           textMutedLight: '#64748B',
         },
         law: {
-          snf1: '#10B981', // Amfi 8 - Emerald Racing Green
-          snf2: '#3B82F6', // Amfi 1 - Shark Blue
-          snf1Light: '#ECFDF5',
-          snf2Light: '#EFF6FF',
-          lib: '#F59E0B',  // Merkez Kütüphane Altın Blok
-          tech: '#A855F7', // Deep Work & Proje Violet
+          snf1: '#10B981',     // 1. Sınıf (Amfi 8) - Racing Olive / Emerald
+          snf2: '#94A3B8',     // 2. Sınıf (Amfi 1) - Ice Titanium / Slate Silver (Mavilik kaldırıldı!)
+          lib: '#F59E0B',      // Merkez Kütüphane - Warm Amber / Bronze
+          tech: '#8B5CF6',     // Deep Work & Proje - Amethyst Violet
         }
       },
       fontFamily: {
@@ -35,8 +35,8 @@ export default {
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
       },
       boxShadow: {
-        'gt3': '0 0 25px -5px rgba(255, 208, 0, 0.15)',
-        'gt3-lg': '0 0 35px -5px rgba(255, 208, 0, 0.25)',
+        'gt3': '0 0 20px -3px rgba(250, 204, 21, 0.18)',
+        'gt3-lg': '0 0 35px -5px rgba(250, 204, 21, 0.3)',
       }
     },
   },

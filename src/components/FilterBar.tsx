@@ -18,7 +18,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const filters: { key: FilterCategory; label: string; dotColor: string }[] = [
     { key: 'all', label: 'Tüm Hafta', dotColor: 'bg-gt3-yellow' },
     { key: 'snf1', label: '1. Sınıf (Amfi 8)', dotColor: 'bg-emerald-500' },
-    { key: 'snf2', label: '2. Sınıf (Amfi 1)', dotColor: 'bg-blue-500' },
+    { key: 'snf2', label: '2. Sınıf (Amfi 1)', dotColor: 'bg-slate-400 dark:bg-slate-300' },
     { key: 'lib', label: 'Merkez Kütüphane', dotColor: 'bg-amber-500' },
     { key: 'deepwork', label: 'Deep Work & Şirket', dotColor: 'bg-purple-500' },
   ];

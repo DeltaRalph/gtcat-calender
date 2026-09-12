@@ -95,7 +95,7 @@ export const QuickSyllabusModal: React.FC<QuickSyllabusModalProps> = ({ isOpen, 
           {/* 2. Sınıf Grubu */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
               <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                 2. Sınıf Zorunlu Dersleri (Amfi 1 / Sabah Grubu)
               </h4>
@@ -105,13 +105,13 @@ export const QuickSyllabusModal: React.FC<QuickSyllabusModalProps> = ({ isOpen, 
               {snf2Courses.map(course => (
                 <div 
                   key={course.code}
-                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 border-l-4 border-l-blue-500"
+                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 border-l-4 border-l-slate-400 dark:border-l-slate-300"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                    <span className="font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300">
                       {course.code}
                     </span>
-                    <span className="font-bold text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                    <span className="font-bold text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                       {course.ects} AKTS • {course.weeklyHours} Saat
                     </span>
                   </div>
